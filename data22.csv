@@ -1,0 +1,10 @@
+Name,Age,City,Gender,Email,Join Date
+Alice,25,New York,F,alice@example.com,12-02-2026
+Charlie,,Delhi,M,charlie@example,13-02-2026
+Bob,30,Los Angeles,M,,14-02-2026
+Charlie,,Delhi,M,charlie@example,13-02-2026
+David,22,Mumbai,M,david@example.com,16-02-2026
+,28,Delhi,F,eve@domain.com,17-02-2026
+Alice,25,New York,F,alice@example.com,12-02-2026
+Alice,25,New York,F,alice@example.com,12-02-2026
+Charlie,,Delhi,M,charlie@example,13-02-2026
