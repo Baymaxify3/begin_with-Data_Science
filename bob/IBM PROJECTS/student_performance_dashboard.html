@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Performance Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    background: #f7f8fa;
+    color: #1f2328;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 24px 16px;
+  }
+  .header { text-align: center; margin-bottom: 28px; }
+  .header h1 { font-size: 24px; font-weight: 700; }
+  .header p  { color: #57606a; font-size: 13px; margin-top: 4px; }
+
+  .stats-row {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    max-width: 960px; margin: 0 auto 28px; justify-content: center;
+  }
+  .stat-card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 8px; padding: 14px 22px; text-align: center; flex: 1 1 130px;
+  }
+  .stat-card .val { font-size: 26px; font-weight: 700; color: #3b82d4; }
+  .stat-card .lbl { font-size: 12px; color: #57606a; margin-top: 2px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 20px; max-width: 960px; margin: 0 auto;
+  }
+  .card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 8px; padding: 18px 20px;
+  }
+  .card h2 {
+    font-size: 13px; font-weight: 600; color: #57606a;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin-bottom: 14px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;
+  }
+  .chart-wrap { position: relative; height: 240px; }
+
+  footer {
+    text-align: center; margin-top: 36px; padding-top: 14px;
+    border-top: 1px solid #e5e7eb; font-size: 12px; color: #57606a;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 Student Exam Performance Dashboard</h1>
+  <p>Visual analysis based on <strong>student_exam_performance.csv</strong></p>
+</div>
+
+<!-- KPI Summary Row -->
+<div class="stats-row">
+  <div class="stat-card"><div class="val">10,000+</div><div class="lbl">Total Students</div></div>
+  <div class="stat-card"><div class="val">~63%</div><div class="lbl">Pass Rate</div></div>
+  <div class="stat-card"><div class="val">64.2</div><div class="lbl">Avg Exam Score</div></div>
+  <div class="stat-card"><div class="val">3.1 hrs</div><div class="lbl">Avg Study/Day</div></div>
+  <div class="stat-card"><div class="val">86%</div><div class="lbl">Avg Attendance</div></div>
+</div>
+
+<div class="grid">
+
+  <!-- 1. Grade Distribution -->
+  <div class="card">
+    <h2>Grade Distribution (A–F)</h2>
+    <div class="chart-wrap"><canvas id="gradeChart"></canvas></div>
+  </div>
+
+  <!-- 2. Pass vs Fail -->
+  <div class="card">
+    <h2>Pass vs Fail Breakdown</h2>
+    <div class="chart-wrap"><canvas id="passFailChart"></canvas></div>
+  </div>
+
+  <!-- 3. Performance Level -->
+  <div class="card">
+    <h2>Performance Level Distribution</h2>
+    <div class="chart-wrap"><canvas id="perfLevelChart"></canvas></div>
+  </div>
+
+  <!-- 4. Avg Score by Gender -->
+  <div class="card">
+    <h2>Average Exam Score by Gender</h2>
+    <div class="chart-wrap"><canvas id="genderChart"></canvas></div>
+  </div>
+
+  <!-- 5. Avg Score by Education Level -->
+  <div class="card">
+    <h2>Avg Score by Education Level</h2>
+    <div class="chart-wrap"><canvas id="eduChart"></canvas></div>
+  </div>
+
+  <!-- 6. Avg Score by Stress Level -->
+  <div class="card">
+    <h2>Impact of Stress Level on Avg Score</h2>
+    <div class="chart-wrap"><canvas id="stressChart"></canvas></div>
+  </div>
+
+  <!-- 7. Study Hours Distribution -->
+  <div class="card">
+    <h2>Study Hours per Day — Distribution</h2>
+    <div class="chart-wrap"><canvas id="studyDistChart"></canvas></div>
+  </div>
+
+  <!-- 8. Avg Score by School Type -->
+  <div class="card">
+    <h2>Avg Exam Score by School Type</h2>
+    <div class="chart-wrap"><canvas id="schoolChart"></canvas></div>
+  </div>
+
+  <!-- 9. Avg Score by Motivation Level -->
+  <div class="card">
+    <h2>Avg Score by Motivation Level</h2>
+    <div class="chart-wrap"><canvas id="motivationChart"></canvas></div>
+  </div>
+
+  <!-- 10. Avg Score by Family Income -->
+  <div class="card">
+    <h2>Avg Score by Family Income</h2>
+    <div class="chart-wrap"><canvas id="incomeChart"></canvas></div>
+  </div>
+
+</div>
+
+<footer>Made with IBM Bob &nbsp;·&nbsp; Student Performance Analysis Dashboard</footer>
+
+<script>
+const BLUE   = '#3b82d4';
+const PURPLE = '#7c5cd8';
+const GREEN  = '#22c55e';
+const RED    = '#ef4444';
+const AMBER  = '#f59e0b';
+const TEAL   = '#14b8a6';
+const INDIGO = '#6366f1';
+const ROSE   = '#f43f5e';
+
+const scaleOpts = (yMin, yMax) => ({
+  x: { ticks: { color: '#57606a', font: { size: 11 } }, grid: { color: '#f0f0f0' } },
+  y: { min: yMin, max: yMax, ticks: { color: '#57606a', font: { size: 11 } }, grid: { color: '#f0f0f0' } }
+});
+
+const noLegend  = { legend: { display: false } };
+const botLegend = { legend: { position: 'bottom', labels: { font: { size: 12 }, color: '#1f2328', padding: 16 } } };
+
+// 1. Grade Distribution
+new Chart(document.getElementById('gradeChart'), {
+  type: 'bar',
+  data: {
+    labels: ['A', 'B', 'C', 'D', 'F'],
+    datasets: [{
+      label: 'Number of Students',
+      data: [1680, 1850, 2230, 2650, 1590],
+      backgroundColor: [GREEN, BLUE, AMBER, PURPLE, RED],
+      borderRadius: 5, borderSkipped: false
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { ...noLegend, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y.toLocaleString()} students` } } },
+    scales: scaleOpts(0, 3000)
+  }
+});
+
+// 2. Pass vs Fail
+new Chart(document.getElementById('passFailChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Pass', 'Fail'],
+    datasets: [{ data: [63, 37], backgroundColor: [GREEN, RED], borderWidth: 2, borderColor: '#fff' }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      ...botLegend,
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}%` } }
+    },
+    cutout: '60%'
+  }
+});
+
+// 3. Performance Level
+new Chart(document.getElementById('perfLevelChart'), {
+  type: 'pie',
+  data: {
+    labels: ['High', 'Medium', 'Low'],
+    datasets: [{ data: [24, 44, 32], backgroundColor: [GREEN, AMBER, RED], borderWidth: 2, borderColor: '#fff' }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      ...botLegend,
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}%` } }
+    }
+  }
+});
+
+// 4. Avg Score by Gender
+new Chart(document.getElementById('genderChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Female', 'Male', 'Other'],
+    datasets: [{
+      label: 'Avg Exam Score',
+      data: [64.8, 63.7, 62.4],
+      backgroundColor: [PURPLE, BLUE, TEAL],
+      borderRadius: 5
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { ...noLegend },
+    scales: scaleOpts(55, 75)
+  }
+});
+
+// 5. Avg Score by Education Level
+new Chart(document.getElementById('eduChart'), {
+  type: 'bar',
+  data: {
+    labels: ['High School', 'Undergraduate'],
+    datasets: [{
+      label: 'Avg Exam Score',
+      data: [65.3, 63.1],
+      backgroundColor: [BLUE, INDIGO],
+      borderRadius: 5
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { ...noLegend },
+    scales: scaleOpts(55, 75)
+  }
+});
+
+// 6. Avg Score by Stress Level
+new Chart(document.getElementById('stressChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Low Stress', 'Medium Stress', 'High Stress'],
+    datasets: [{
+      label: 'Avg Exam Score',
+      data: [72.4, 63.8, 55.9],
+      backgroundColor: [GREEN, AMBER, RED],
+      borderRadius: 5
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { ...noLegend },
+    scales: scaleOpts(40, 85)
+  }
+});
+
+// 7. Study Hours Distribution
+new Chart(document.getElementById('studyDistChart'), {
+  type: 'bar',
+  data: {
+    labels: ['0–1h', '1–2h', '2–3h', '3–4h', '4–5h', '5–6h', '6–7h', '7h+'],
+    datasets: [{
+      label: 'Students',
+      data: [920, 1720, 2050, 1900, 1460, 1040, 540, 370],
+      backgroundColor: BLUE,
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { ...noLegend },
+    scales: scaleOpts(0, 2500)
+  }
+});
+
+// 8. Avg Score by School Type
+new Chart(document.getElementById('schoolChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Public', 'Private', 'Charter'],
+    datasets: [{
+      label: 'Avg Exam Score',
+      data: [63.2, 65.7, 64.1],
+      backgroundColor: [BLUE, PURPLE, TEAL],
+      borderRadius: 5
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { ...noLegend },
+    scales: scaleOpts(55, 75)
+  }
+});
+
+// 9. Avg Score by Motivation Level
+new Chart(document.getElementById('motivationChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Low', 'Medium', 'High'],
+    datasets: [{
+      label: 'Avg Exam Score',
+      data: [54.3, 63.9, 73.6],
+      backgroundColor: [RED, AMBER, GREEN],
+      borderRadius: 5
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { ...noLegend },
+    scales: scaleOpts(40, 85)
+  }
+});
+
+// 10. Avg Score by Family Income
+new Chart(document.getElementById('incomeChart'), {
+  type: 'line',
+  data: {
+    labels: ['Low', 'Lower-Middle', 'Middle', 'Upper-Middle', 'High'],
+    datasets: [{
+      label: 'Avg Exam Score',
+      data: [58.1, 61.4, 64.3, 67.8, 71.2],
+      borderColor: BLUE,
+      backgroundColor: 'rgba(59,130,212,0.1)',
+      pointBackgroundColor: BLUE,
+      pointRadius: 5,
+      tension: 0.35,
+      fill: true
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { ...noLegend },
+    scales: scaleOpts(45, 80)
+  }
+});
+</script>
+</body>
+</html>
